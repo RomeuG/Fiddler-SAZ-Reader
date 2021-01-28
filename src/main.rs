@@ -52,6 +52,7 @@ fn append_column(tree: &gtk::TreeView, title: &str, id: i32) {
     // Association of the view's column with the model's `id` column.
     column.add_attribute(&cell, "text", id);
     column.set_title(&title);
+
     tree.append_column(&column);
 }
 
@@ -97,6 +98,25 @@ impl Widget for Win {
 	append_column(&tree, "Title2", 1);
 
 	tree.set_model(Some(&tree_view_model));
+
+        tree.connect_cursor_changed(move |tree_view| {
+            let selection = tree_view.get_selection();
+            println!("{:?}", selection);
+            if let Some((model, iter)) = selection.get_selected() {
+                println!("Hello '{}' from row {}",
+                         model
+                         .get_value(&iter, 1)
+                         .get::<String>()
+                         .expect("Treeview selection, column 1")
+                         .expect("Treeview selection, column 1: mandatory value not found"),
+                         model
+                         .get_value(&iter, 0)
+                         .get::<String>()
+                         .expect("Treeview selection, column 0")
+                         .expect("Treeview selection, column 0: mandatory value not found"),
+                );
+            }
+        });
 
         let vbox = gtk::Box::new(Orientation::Vertical, 0);
 	vbox.set_margin_start(8);
