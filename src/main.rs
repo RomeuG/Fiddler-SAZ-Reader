@@ -25,49 +25,6 @@ fn build_ui(application: &gtk::Application) {
 
     let hbox = gtk::Box::new(Orientation::Horizontal, 0);
 
-    let tree_view_model = gtk::ListStore::new(&[String::static_type(), String::static_type()]);
-
-    let test_entries1 = &["Test1", "Test2", "Test3"];
-    let test_entries2 = &["Test1", "Test2", "Test3"];
-
-    for i in 0..3 {
-	tree_view_model.insert_with_values(None, &[0, 1], &[&test_entries1[i], &test_entries2[i]]);
-    }
-
-    let tree = gtk::TreeView::new();
-    tree.set_property_width_request(300);
-    tree.set_headers_visible(true);
-    // Creating the two columns inside the view.
-    append_column(&tree, "Title1", 0);
-    append_column(&tree, "Title2", 1);
-
-    tree.set_model(Some(&tree_view_model));
-
-    tree.connect_cursor_changed(move |tree_view| {
-        let selection = tree_view.get_selection();
-        println!("{:?}", selection);
-        if let Some((model, iter)) = selection.get_selected() {
-            println!("Hello '{}' from row {}",
-                     model
-                     .get_value(&iter, 1)
-                     .get::<String>()
-                     .expect("Treeview selection, column 1")
-                     .expect("Treeview selection, column 1: mandatory value not found"),
-                     model
-                     .get_value(&iter, 0)
-                     .get::<String>()
-                     .expect("Treeview selection, column 0")
-                     .expect("Treeview selection, column 0: mandatory value not found"),
-            );
-        }
-    });
-
-    let vbox = gtk::Box::new(Orientation::Vertical, 0);
-    vbox.set_margin_start(8);
-    vbox.set_margin_end(8);
-    vbox.set_margin_top(8);
-    vbox.set_margin_bottom(8);
-
     let requestTextView = gtk::TextView::new();
     requestTextView.set_property_height_request(300);
     requestTextView.set_property_width_request(300);
@@ -81,8 +38,55 @@ fn build_ui(application: &gtk::Application) {
     responseTextView.set_margin_top(8);
     responseTextView.get_buffer().unwrap().set_text("Response text!");
 
+    let vbox = gtk::Box::new(Orientation::Vertical, 0);
+    vbox.set_margin_start(8);
+    vbox.set_margin_end(8);
+    vbox.set_margin_top(8);
+    vbox.set_margin_bottom(8);
+
     vbox.add(&requestTextView);
     vbox.add(&responseTextView);
+
+    let tree_view_model = gtk::ListStore::new(&[String::static_type(), String::static_type()]);
+
+    let test_entries1 = &["Test1", "Test2", "Test3"];
+    let test_entries2 = &["Test1", "Test2", "Test3"];
+
+    for i in 0..3 {
+	tree_view_model.insert_with_values(None, &[0, 1], &[&test_entries1[i], &test_entries2[i]]);
+    }
+
+    let tree = gtk::TreeView::new();
+    tree.set_property_margin(8);
+    tree.set_property_width_request(300);
+    tree.set_headers_visible(true);
+    // Creating the two columns inside the view.
+    append_column(&tree, "Title1", 0);
+    append_column(&tree, "Title2", 1);
+
+    tree.set_model(Some(&tree_view_model));
+
+    tree.connect_cursor_changed(move |tree_view| {
+        let selection = tree_view.get_selection();
+        println!("{:?}", selection);
+        if let Some((model, iter)) = selection.get_selected() {
+
+            let column_zero = model.get_value(&iter, 0)
+                .get::<String>()
+                .expect("Treeview selection, column 0")
+                .expect("Treeview selection, column 0: mandatory value not found");
+
+            let column_first = model.get_value(&iter, 1)
+                .get::<String>()
+                .expect("Treeview selection, column 1")
+                .expect("Treeview selection, column 1: mandatory value not found");
+
+            println!("Hello '{}' from row {}", &column_first, &column_zero);
+
+            requestTextView.get_buffer().unwrap().set_text(&column_zero);
+            responseTextView.get_buffer().unwrap().set_text(&column_first);
+        }
+    });
 
     hbox.add(&tree);
     hbox.add(&vbox);
