@@ -5,7 +5,7 @@ use gtk::{
     WindowPosition,
 };
 
-use std::env::args;
+use std::env;
 
 fn append_column(tree: &gtk::TreeView, title: &str, id: i32) {
     let column = gtk::TreeViewColumn::new();
@@ -19,7 +19,7 @@ fn append_column(tree: &gtk::TreeView, title: &str, id: i32) {
     tree.append_column(&column);
 }
 
-fn build_ui(application: &gtk::Application) {
+fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
     let window = ApplicationWindow::new(application);
     window.set_resizable(false);
 
@@ -49,11 +49,18 @@ fn build_ui(application: &gtk::Application) {
 
     let tree_view_model = gtk::ListStore::new(&[String::static_type(), String::static_type()]);
 
+    let index_entries: Vec<u32> = saz.iter().map(|i| { i.index }).collect();
+    let url_entries: Vec<String> = saz.iter().map(|i| { i.url.clone() }).collect();
+    let body_entries: Vec<u32> = saz.iter().map(|i| { i.body }).collect();
+
+    // let request_entries: Vec<std::rc::Rc<String>> = saz.iter().map(|a| { a.file_request_contents.clone() }).collect();
+    // let response_entries: Vec<std::rc::Rc<String>> = saz.iter().map(|a| { a.file_response_contents.clone() }).collect();
+
     let test_entries1 = &["Test1", "Test2", "Test3"];
     let test_entries2 = &["Test1", "Test2", "Test3"];
 
     for i in 0..3 {
-	tree_view_model.insert_with_values(None, &[0, 1], &[&test_entries1[i], &test_entries2[i]]);
+        tree_view_model.insert_with_values(None, &[0, 1], &[&test_entries1[i], &test_entries2[i]]);
     }
 
     let tree = gtk::TreeView::new();
@@ -97,15 +104,31 @@ fn build_ui(application: &gtk::Application) {
 }
 
 fn main() {
-    let application = gtk::Application::new(
-        Some("com.github.gtk-rs.examples.treeview"),
-        Default::default(),
-    )
-        .expect("Initialization failed...");
+    let args = env::args().collect::<Vec<_>>();
+    if args.len() != 2 {
+        // TODO change this later
+        println!("File argument is missing.");
+        std::process::exit(1);
+    }
 
-    application.connect_activate(|app| {
-        build_ui(app);
-    });
+    println!("Parsing file...");
+    let saz = sazparser::parse(&*args[1]);
 
-    application.run(&args().collect::<Vec<_>>());
+    match saz {
+        Ok(v) => {
+            let application = gtk::Application::new(
+                Some("com.romeug.fiddlerreader"),
+                Default::default(),
+            ).expect("Initialization failed...");
+
+            application.connect_activate(move |app| {
+                build_ui(app, v.clone());
+            });
+
+            application.run(&vec![]);
+        }
+        Err(e) => {
+            panic!("{}", e);
+        }
+    }
 }
