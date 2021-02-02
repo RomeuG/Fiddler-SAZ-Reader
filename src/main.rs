@@ -7,6 +7,7 @@ use gtk::{
 
 use std::env;
 
+// TODO: argument to define fixed width (and probably min width)
 fn append_column(tree: &gtk::TreeView, title: &str, id: i32) {
     let column = gtk::TreeViewColumn::new();
     let cell = gtk::CellRendererText::new();
@@ -14,7 +15,13 @@ fn append_column(tree: &gtk::TreeView, title: &str, id: i32) {
     column.pack_start(&cell, true);
     // Association of the view's column with the model's `id` column.
     column.add_attribute(&cell, "text", id);
+    // column.set_sizing(gtk::TreeViewColumnSizing::);
+    column.set_expand(true);
+
     column.set_title(&title);
+    column.set_resizable(true);
+    column.set_min_width(50);
+    column.set_fixed_width(150);
 
     tree.append_column(&column);
 }
@@ -25,6 +32,7 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
 
     let hbox = gtk::Box::new(Orientation::Horizontal, 0);
 
+    // TODO: check how to do scrollable textviews
     let requestTextView = gtk::TextView::new();
     requestTextView.set_property_height_request(300);
     requestTextView.set_property_width_request(300);
@@ -47,29 +55,25 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
     vbox.add(&requestTextView);
     vbox.add(&responseTextView);
 
-    let tree_view_model = gtk::ListStore::new(&[String::static_type(), String::static_type()]);
+    let tree_view_model = gtk::TreeStore::new(&[u32::static_type(), String::static_type(), u32::static_type()]);
 
     let index_entries: Vec<u32> = saz.iter().map(|i| { i.index }).collect();
     let url_entries: Vec<String> = saz.iter().map(|i| { i.url.clone() }).collect();
     let body_entries: Vec<u32> = saz.iter().map(|i| { i.body }).collect();
 
-    // let request_entries: Vec<std::rc::Rc<String>> = saz.iter().map(|a| { a.file_request_contents.clone() }).collect();
-    // let response_entries: Vec<std::rc::Rc<String>> = saz.iter().map(|a| { a.file_response_contents.clone() }).collect();
-
-    let test_entries1 = &["Test1", "Test2", "Test3"];
-    let test_entries2 = &["Test1", "Test2", "Test3"];
-
-    for i in 0..3 {
-        tree_view_model.insert_with_values(None, &[0, 1], &[&test_entries1[i], &test_entries2[i]]);
+    for i in 0..index_entries.len() {
+        tree_view_model.insert_with_values(None, None, &[0, 1, 2], &[&index_entries[i], &url_entries[i], &body_entries[i]]);
     }
 
     let tree = gtk::TreeView::new();
     tree.set_property_margin(8);
     tree.set_property_width_request(300);
     tree.set_headers_visible(true);
+
     // Creating the two columns inside the view.
-    append_column(&tree, "Title1", 0);
-    append_column(&tree, "Title2", 1);
+    append_column(&tree, "Index", 0);
+    append_column(&tree, "Url", 1);
+    append_column(&tree, "Body Size", 2);
 
     tree.set_model(Some(&tree_view_model));
 
@@ -78,20 +82,16 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
         println!("{:?}", selection);
         if let Some((model, iter)) = selection.get_selected() {
 
-            let column_zero = model.get_value(&iter, 0)
-                .get::<String>()
-                .expect("Treeview selection, column 0")
-                .expect("Treeview selection, column 0: mandatory value not found");
+            let index = model.get_value(&iter, 0)
+                .get::<u32>()
+                .expect("jgirueahgiureahgrueia")
+                .expect("graegjihreaoihgreioahgrae");
 
-            let column_first = model.get_value(&iter, 1)
-                .get::<String>()
-                .expect("Treeview selection, column 1")
-                .expect("Treeview selection, column 1: mandatory value not found");
+            println!("{}", index);
+            let computed_index = (index - 1) as usize;
 
-            println!("Hello '{}' from row {}", &column_first, &column_zero);
-
-            requestTextView.get_buffer().unwrap().set_text(&column_zero);
-            responseTextView.get_buffer().unwrap().set_text(&column_first);
+            requestTextView.get_buffer().unwrap().set_text(&saz[computed_index].file_request_contents);
+            responseTextView.get_buffer().unwrap().set_text(&saz[computed_index].file_response_contents);
         }
     });
 
