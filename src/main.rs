@@ -30,6 +30,14 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
     let window = ApplicationWindow::new(application);
     window.set_resizable(false);
 
+    let scroll = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    scroll.set_property_height_request(300);
+    scroll.set_property_width_request(300);
+
+    let scroll2 = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    scroll2.set_property_height_request(300);
+    scroll2.set_property_width_request(300);
+
     let hbox = gtk::Box::new(Orientation::Horizontal, 0);
 
     // TODO: check how to do scrollable textviews
@@ -52,8 +60,14 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
     vbox.set_margin_top(8);
     vbox.set_margin_bottom(8);
 
-    vbox.add(&requestTextView);
-    vbox.add(&responseTextView);
+    scroll.add(&requestTextView);
+    scroll2.add(&responseTextView);
+
+    vbox.add(&scroll);
+    vbox.add(&scroll2);
+
+    // vbox.add(&requestTextView);
+    // vbox.add(&responseTextView);
 
     let tree_view_model = gtk::TreeStore::new(&[u32::static_type(), String::static_type(), u32::static_type()]);
 
