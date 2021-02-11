@@ -7,6 +7,27 @@ use gtk::{
 
 use std::env;
 
+fn replace<T>(source: &[T], from: &[T], to: &[T]) -> Vec<T>
+where
+    T: Clone + PartialEq
+{
+    let mut result = source.to_vec();
+    let from_len = from.len();
+    let to_len = to.len();
+
+    let mut i = 0;
+    while i + from_len <= result.len() {
+        if result[i..].starts_with(from) {
+            result.splice(i..i + from_len, to.iter().cloned());
+            i += to_len;
+        } else {
+            i += 1;
+        }
+    }
+
+    result
+}
+
 // TODO: argument to define fixed width (and probably min width)
 fn append_column(tree: &gtk::TreeView, title: &str, id: i32) {
     let column = gtk::TreeViewColumn::new();
@@ -30,6 +51,9 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
     let window = ApplicationWindow::new(application);
     window.set_resizable(false);
 
+    let scroller_tree = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
+    scroller_tree.set_property_width_request(300);
+
     let scroller_request = gtk::ScrolledWindow::new(gtk::NONE_ADJUSTMENT, gtk::NONE_ADJUSTMENT);
     scroller_request.set_property_height_request(300);
     scroller_request.set_property_width_request(300);
@@ -40,7 +64,6 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
 
     let hbox = gtk::Box::new(Orientation::Horizontal, 0);
 
-    // TODO: check how to do scrollable textviews
     let requestTextView = gtk::TextView::new();
     requestTextView.set_property_height_request(300);
     requestTextView.set_property_width_request(300);
@@ -101,12 +124,23 @@ fn build_ui(application: &gtk::Application, saz: Vec<sazparser::SazSession>) {
             println!("{}", index);
             let computed_index = (index - 1) as usize;
 
-            requestTextView.get_buffer().unwrap().set_text(&saz[computed_index].file_request_contents);
-            responseTextView.get_buffer().unwrap().set_text(&saz[computed_index].file_response_contents);
+            // TODO: try to understand what byte should replace null bytes
+            let req_bytes = &saz[computed_index].file_request_contents.as_bytes();
+            let req_bytes_replaced = replace(&req_bytes[..], &[0], &[1]);
+            let req_string = std::string::String::from_utf8_lossy(&req_bytes_replaced);
+
+            // TODO: try to understand what byte should replace null bytes
+            let res_bytes = &saz[computed_index].file_response_contents.as_bytes();
+            let res_bytes_replaced = replace(&res_bytes[..], &[0], &[1]);
+            let res_string = std::string::String::from_utf8_lossy(&res_bytes_replaced);
+
+            requestTextView.get_buffer().unwrap().set_text(&req_string);
+            responseTextView.get_buffer().unwrap().set_text(&res_string);
         }
     });
 
-    hbox.add(&tree);
+    scroller_tree.add(&tree);
+    hbox.add(&scroller_tree);
     hbox.add(&vbox);
 
     window.add(&hbox);
